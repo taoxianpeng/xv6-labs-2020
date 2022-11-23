@@ -24,3 +24,6 @@ compile_commands.json
 .vscode/
 .cache/
 user/.sleep.c.swp
+xv6.srctrlbm
+xv6.srctrldb
+xv6.srctrlprj

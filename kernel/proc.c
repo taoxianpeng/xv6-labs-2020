@@ -293,6 +293,9 @@ fork(void)
 
   pid = np->pid;
 
+  //copy maks from parent to child
+  np->mask = p->mask;
+
   np->state = RUNNABLE;
 
   release(&np->lock);
