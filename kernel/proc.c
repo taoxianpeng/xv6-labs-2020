@@ -239,7 +239,7 @@ userinit(void)
   // and data into it.
   uvminit(p->pagetable, initcode, sizeof(initcode));
   p->sz = PGSIZE;
-
+  u2kvmcopy(p->pagetable, p->kernelpgtbl, 0, p->sz);
   // prepare for the very first "return" from kernel to user.
   p->trapframe->epc = 0;      // user program counter
   p->trapframe->sp = PGSIZE;  // user stack pointer
@@ -261,12 +261,25 @@ growproc(int n)
   struct proc *p = myproc();
 
   sz = p->sz;
+
+  //修改 
+
   if(n > 0){
-    if((sz = uvmalloc(p->pagetable, sz, sz + n)) == 0) {
+    uint64 newsz;
+    if(PGROUNDUP(sz+n) >= PLIC) 
+      return -1;
+    if((newsz = uvmalloc(p->pagetable, sz, sz + n)) == 0) {
+      return -1;
+    }
+    //内核页表中的映射同步扩大
+    if(u2kvmcopy(p->pagetable, p->kernelpgtbl, sz, n)!=0){
+      kvmdealloc(p->pagetable, newsz, sz);
       return -1;
     }
   } else if(n < 0){
-    sz = uvmdealloc(p->pagetable, sz, sz + n);
+    uvmdealloc(p->pagetable, sz, sz + n);
+    //同步缩小
+    sz = kvmdealloc(p->kernelpgtbl, sz, sz+n);
   }
   p->sz = sz;
   return 0;
@@ -287,7 +300,8 @@ fork(void)
   }
 
   // Copy user memory from parent to child.
-  if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0){
+  // 调用 u2kvmcopy，将**新进程**用户页表映射拷贝一份到新进程内核页表中
+  if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0 || u2kvmcopy(np->pagetable,np->kernelpgtbl, 0, p->sz) < 0){
     freeproc(np);
     release(&np->lock);
     return -1;
@@ -496,7 +510,6 @@ scheduler(void)
         //切换到进程独立的内核页表
         w_satp(MAKE_SATP(p->kernelpgtbl));
         sfence_vma();
-
         // 调度，执行进程
         swtch(&c->context, &p->context);
 

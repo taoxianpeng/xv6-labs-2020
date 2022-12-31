@@ -177,10 +177,16 @@ void            uvmclear(pagetable_t, uint64);
 uint64          walkaddr(pagetable_t, uint64);
 int             copyout(pagetable_t, uint64, char *, uint64);
 int             copyin(pagetable_t, char *, uint64, uint64);
+//copyin_new
+int             copyin_new(pagetable_t, char *, uint64, uint64);
 int             copyinstr(pagetable_t, char *, uint64, uint64);
+//copyinstr_new
+int             copyinstr_new(pagetable_t, char *, uint64, uint64);
 void            vmprint(pagetable_t pagetable);
 pagetable_t     kvminit_newpgtbl();
 void            kvm_free_kernelpgtbl(pagetable_t pagetable);
+int             u2kvmcopy(pagetable_t pagetable, pagetable_t kpagetable, uint64 start, uint64 sz);
+uint64          kvmdealloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz);
 // plic.c
 void            plicinit(void);
 void            plicinithart(void);
